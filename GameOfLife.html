@@ -1,0 +1,189 @@
+<html>
+
+<head>
+	<title>Game of Life</title>
+
+	<script src="jquery/2.1.0/jquery.js"></script>
+
+	<style type="text/css">
+		td {
+ 		   border: 1px solid black;
+ 		   margin: 0;
+ 		   padding: 0;
+ 		   width: 10px;
+ 		   height: 10px;
+		}
+	</style>
+</head>
+
+<body>
+	<table class="grid">
+		<tr><td class="cell"></td></tr>
+	</table>
+	<button id="btnStart" type="button">Start</button>
+	<button id="btnStop" type="button">Stop</button>
+	<button id="btnStep" type="button">Step</button>
+
+	<script type="text/javascript">
+		var width = 50;
+		var height = 50;
+
+		// Used for painting
+		var isMouseDown = false;
+		$(document).mousedown(function() {
+			isMouseDown = true;
+		}).mouseup(function() {
+			isMouseDown = false;  
+		});
+
+		// Create the html content for the table
+		function populateGrid()
+		{
+			console.log("Populating");
+
+			var content = "";
+			for (row = 0; row < height; row++)
+			{
+				content += "<tr>";
+				for (col = 0; col < width; col++)
+				{
+					content += '<td class="cell"></td>';	
+				}
+				content += "</tr>";
+			}
+
+			$(".grid").html(content);
+
+			// Paint cells live with the mouse
+			$(".cell").mousedown(function(event){
+				$(this).css("background-color", "black");
+			});
+			$(".cell").mouseenter(function(event){
+				if (isMouseDown)
+				{
+					$(this).mousedown();
+				}
+			});
+		}
+
+		// Read the current state from the table
+		function readFromTable()
+		{			
+			var gridArray = [];
+			for (row = 0; row < height; row++)
+			{
+				gridArray[row] = [];
+			}
+
+			var row = 0;
+			$(".grid tr").each(function(){
+				var col = 0;
+				$(this).find("td").each(function(){
+					gridArray[row][col] = $(this).css("background-color") == "rgb(0, 0, 0)";
+					col++;
+				});
+				row++;
+			});
+
+			return gridArray;
+		}
+
+		// Write the current state to the table
+		function writeToTable(values)
+		{
+			var row = 0;
+			$(".grid tr").each(function(){
+				var col = 0;
+				$(this).find("td").each(function(){
+					if (values[row][col])
+					{
+						$(this).css("background-color", "black");
+					}
+					else
+					{
+						$(this).css("background-color", "white");
+					}
+					col++;
+				});
+				row++;
+			});
+		}
+
+		// Perform one timestep
+		function update()
+		{
+			var thisGrid = readFromTable();
+			var nextGrid = [];
+			for (row = 0; row < height; row++)
+			{
+				nextGrid[row] = [];
+			}
+
+			for (row = 0; row < height; row++)
+			{
+				for (col = 0; col < width; col++)
+				{
+					// Count neighbours
+					var numNeighbours = 0;
+					for (neighbourRow = row - 1; neighbourRow <= row + 1; neighbourRow++){
+						for (neighbourCol = col - 1; neighbourCol <= col + 1; neighbourCol++){
+							// If this is in the range
+							if (neighbourCol >= 0 && neighbourRow >= 0 && neighbourCol < width && neighbourRow < height){
+								// If this isn't us
+								if (neighbourRow != row || neighbourCol != col){
+									if (thisGrid[neighbourRow][neighbourCol]){
+										numNeighbours++;
+									}
+								}
+							}
+						}
+					}
+
+					if (thisGrid[row][col])
+					{
+						if (numNeighbours < 2 || numNeighbours > 3)
+						{
+							nextGrid[row][col] = false;
+						}
+						else
+						{
+							nextGrid[row][col] = true;
+						}
+					}
+					else
+					{
+						if (numNeighbours == 3)
+						{
+							nextGrid[row][col] = true;
+						}
+						else 
+						{
+							nextGrid[row][col] = false;
+						}
+					}
+				}
+			}
+
+			writeToTable(nextGrid);
+		}
+
+		var updateInterval;
+		$("#btnStart").click(function(){
+			console.log("Starting");
+			clearInterval(updateInterval);
+			updateInterval = setInterval(function(){update()}, 16);
+		});
+		$("#btnStop").click(function(){
+			console.log("Stopping");
+			clearInterval(updateInterval);
+		});
+		$("#btnStep").click(function(){
+			console.log("Stepping");
+			update();
+		});
+
+		populateGrid();
+	</script>
+</body>
+
+</html>
