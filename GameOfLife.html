@@ -23,10 +23,12 @@
 	<button id="btnStart" type="button">Start</button>
 	<button id="btnStop" type="button">Stop</button>
 	<button id="btnStep" type="button">Step</button>
+	<button id="btnSize" type="button">Big mode</button>
 
 	<script type="text/javascript">
 		var width = 50;
 		var height = 50;
+		var tableDirty = false;
 
 		// Used for painting
 		var isMouseDown = false;
@@ -36,8 +38,23 @@
 			isMouseDown = false;  
 		});
 
+		// Initialise the game state
+		var grid;
+		function init()
+		{
+			grid = [];
+			for (row = 0; row < height; row++)
+			{
+				grid[row] = [];
+				for (col = 0; col < width; col++)
+				{
+					grid[row][col] = false;
+				}
+			}
+		}
+
 		// Create the html content for the table
-		function populateGrid()
+		function populateTable()
 		{
 			console.log("Populating");
 
@@ -57,6 +74,7 @@
 			// Paint cells live with the mouse
 			$(".cell").mousedown(function(event){
 				$(this).css("background-color", "black");
+				tableDirty = true;
 			});
 			$(".cell").mouseenter(function(event){
 				if (isMouseDown)
@@ -68,60 +86,36 @@
 
 		// Read the current state from the table
 		function readFromTable()
-		{			
-			var gridArray = [];
-			for (row = 0; row < height; row++)
-			{
-				gridArray[row] = [];
-			}
-
+		{	
 			var row = 0;
 			$(".grid tr").each(function(){
 				var col = 0;
 				$(this).find("td").each(function(){
-					gridArray[row][col] = $(this).css("background-color") == "rgb(0, 0, 0)";
+					grid[row][col] = $(this).css("background-color") == "rgb(0, 0, 0)";
 					col++;
 				});
 				row++;
 			});
 
-			return gridArray;
-		}
-
-		// Write the current state to the table
-		function writeToTable(values)
-		{
-			var row = 0;
-			$(".grid tr").each(function(){
-				var col = 0;
-				$(this).find("td").each(function(){
-					if (values[row][col])
-					{
-						$(this).css("background-color", "black");
-					}
-					else
-					{
-						$(this).css("background-color", "white");
-					}
-					col++;
-				});
-				row++;
-			});
+			tableDirty = false;
 		}
 
 		// Perform one timestep
 		function update()
 		{
-			var thisGrid = readFromTable();
-			var nextGrid = [];
-			for (row = 0; row < height; row++)
+			if (tableDirty)
 			{
-				nextGrid[row] = [];
+				readFromTable();
 			}
 
-			for (row = 0; row < height; row++)
+			var nextGrid = [];
+
+			var row = 0;
+			$(".grid tr").each(function()
 			{
-				for (col = 0; col < width; col++)
+				nextGrid[row] = [];
+				var col = 0;
+				$(this).find("td").each(function()
 				{
 					// Count neighbours
 					var numNeighbours = 0;
@@ -131,7 +125,7 @@
 							if (neighbourCol >= 0 && neighbourRow >= 0 && neighbourCol < width && neighbourRow < height){
 								// If this isn't us
 								if (neighbourRow != row || neighbourCol != col){
-									if (thisGrid[neighbourRow][neighbourCol]){
+									if (grid[neighbourRow][neighbourCol]){
 										numNeighbours++;
 									}
 								}
@@ -139,39 +133,43 @@
 						}
 					}
 
-					if (thisGrid[row][col])
-					{
-						if (numNeighbours < 2 || numNeighbours > 3)
-						{
+					if (grid[row][col]){
+						if (numNeighbours < 2 || numNeighbours > 3){
 							nextGrid[row][col] = false;
 						}
-						else
-						{
+						else {
 							nextGrid[row][col] = true;
 						}
 					}
-					else
-					{
-						if (numNeighbours == 3)
-						{
+					else{
+						if (numNeighbours == 3){
 							nextGrid[row][col] = true;
 						}
-						else 
-						{
+						else {
 							nextGrid[row][col] = false;
 						}
 					}
-				}
-			}
 
-			writeToTable(nextGrid);
+					if (nextGrid[row][col]){
+						$(this).css("background-color", "black");
+					}
+					else {
+						$(this).css("background-color", "white");
+					}
+
+					col++;
+				});
+				row++;
+			});
+
+			grid = nextGrid;
 		}
 
 		var updateInterval;
 		$("#btnStart").click(function(){
 			console.log("Starting");
 			clearInterval(updateInterval);
-			updateInterval = setInterval(function(){update()}, 16);
+			updateInterval = setInterval(function(){update()}, 100);
 		});
 		$("#btnStop").click(function(){
 			console.log("Stopping");
@@ -181,8 +179,25 @@
 			console.log("Stepping");
 			update();
 		});
+		$("#btnSize").click(function(){
+			$("#btnStop").click();
+			console.log("Resizing");
+			if (width == 50)
+			{
+				width = 100;
+				$(this).html("Small mode");
+			}
+			else
+			{
+				width = 50;
+				$(this).html("Big mode");
+			}
+			init();
+			populateTable();
+		});
 
-		populateGrid();
+		init();
+		populateTable();
 	</script>
 </body>
 
